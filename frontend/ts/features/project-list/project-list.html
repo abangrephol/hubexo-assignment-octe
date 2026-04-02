@@ -1,0 +1,37 @@
+<div class="filters">
+    <input type="text" ng-model="keyword" placeholder="Search projects...">
+    <select ng-model="area">
+        <option value="">All Areas</option>
+        <option ng-repeat="a in areas" value="{{a}}">{{a}}</option>
+    </select>
+    <button type="button" ng-click="search()">Search</button>
+</div>
+
+<div class="loading" ng-if="loading">
+    <p>Loading projects...</p>
+</div>
+
+<div class="error" ng-if="error">
+    <p>{{error}}</p>
+</div>
+
+<div class="empty-message" ng-if="emptyMessage">
+    <p>{{emptyMessage}}</p>
+</div>
+
+<div class="project-list" ng-if="!loading && !error && !emptyMessage">
+    <div class="project-item" ng-repeat="project in projects">
+        <h3>{{project.project_name}}</h3>
+        <p><strong>Company:</strong> {{project.company}}</p>
+        <p><strong>Dates:</strong> {{project.project_start}} - {{project.project_end}}</p>
+        <p><strong>Value:</strong> £{{project.project_value | number}}</p>
+        <p><strong>Area:</strong> {{project.area}}</p>
+        <p ng-if="project.description"><strong>Description:</strong> {{project.description}}</p>
+    </div>
+</div>
+
+<div class="pagination" ng-if="pagination.total_pages > 1">
+    <button type="button" ng-click="prevPage()" ng-disabled="pagination.page <= 1">Previous</button>
+    <span>Page {{pagination.page}} of {{pagination.total_pages}}</span>
+    <button type="button" ng-click="nextPage()" ng-disabled="pagination.page >= pagination.total_pages">Next</button>
+</div>

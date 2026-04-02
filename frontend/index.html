@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="gleniganApp">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glenigan Project Browser</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular-route.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Construction Projects</h1>
+    </header>
+
+    <main ng-view></main>
+
+    <script src="dist/app/app.js"></script>
+    <script src="dist/core/services/projectService.js"></script>
+    <script src="dist/features/project-list/controllers/projectListController.js"></script>
+</body>
+</html>
