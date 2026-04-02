@@ -212,4 +212,17 @@ router.get('/areas', async (_req: Request, res: Response) => {
   }
 });
 
+router.get('/companies', async (_req: Request, res: Response) => {
+  try {
+    await ensureDatabase();
+    const sql = `SELECT DISTINCT c.company_name FROM companies c 
+                 INNER JOIN projects p ON c.company_id = p.company_id 
+                 ORDER BY c.company_name`;
+    const results = await getAll<{ company_name: string }>(sql, []);
+    res.json({ companies: results.map(r => r.company_name) });
+  } catch (error: any) {
+    res.status(500).json({ error: 'SERVER_ERROR', message: 'Internal server error' });
+  }
+});
+
 export default router;
