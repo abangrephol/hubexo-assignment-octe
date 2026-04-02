@@ -8,14 +8,13 @@ export async function initializeDatabase(): Promise<Database> {
   if (db) return db;
 
   const SQL = await initSqlJs();
-  const dbPath = path.resolve(__dirname, '../../.env');
-  const envContent = fs.readFileSync(dbPath, 'utf-8');
-  const dbFilePath = envContent.split('\n').find(line => line.startsWith('DB_PATH='))?.split('=')[1]?.trim();
+  
+  const dbFilePath = process.env.DB_PATH || 'data/assignment-db.db';
   
   if (!dbFilePath) {
-    throw new Error('DB_PATH not found in .env file');
+    throw new Error('DB_PATH not found in environment. Ensure .env is loaded.');
   }
-
+  
   const absoluteDbPath = path.resolve(__dirname, '../../', dbFilePath);
   const fileBuffer = fs.readFileSync(absoluteDbPath);
   db = new SQL.Database(fileBuffer);
