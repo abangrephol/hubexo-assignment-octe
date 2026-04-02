@@ -1,37 +1,106 @@
-<div class="filters">
-    <input type="text" ng-model="keyword" placeholder="Search projects...">
-    <select ng-model="area">
-        <option value="">All Areas</option>
-        <option ng-repeat="a in areas" value="{{a}}">{{a}}</option>
-    </select>
-    <button type="button" ng-click="search()">Search</button>
+<div class="page-header">
+    <h1 class="page-title">Projects</h1>
 </div>
 
-<div class="loading" ng-if="loading">
-    <p>Loading projects...</p>
+<div class="search-bar">
+    <div class="search-input-wrapper">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        <input type="text" class="search-input" ng-model="filters.keyword" placeholder="Quick search..." ng-keyup="$event.keyCode === 13 && search()">
+    </div>
+    <button class="filters-toggle" ng-click="showFilters = !showFilters">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+        </svg>
+        {{showFilters ? 'Hide' : 'Show'}} Filters
+    </button>
 </div>
 
-<div class="error" ng-if="error">
-    <p>{{error}}</p>
-</div>
-
-<div class="empty-message" ng-if="emptyMessage">
-    <p>{{emptyMessage}}</p>
-</div>
-
-<div class="project-list" ng-if="!loading && !error && !emptyMessage">
-    <div class="project-item" ng-repeat="project in projects">
-        <h3>{{project.project_name}}</h3>
-        <p><strong>Company:</strong> {{project.company}}</p>
-        <p><strong>Dates:</strong> {{project.project_start}} - {{project.project_end}}</p>
-        <p><strong>Value:</strong> £{{project.project_value | number}}</p>
-        <p><strong>Area:</strong> {{project.area}}</p>
-        <p ng-if="project.description"><strong>Description:</strong> {{project.description}}</p>
+<div class="filters-section" ng-show="showFilters">
+    <div class="filters-panel">
+        <div class="filters-grid">
+            <div class="filter-group">
+                <label class="filter-label">Area</label>
+                <select class="filter-select" ng-model="filters.area">
+                    <option value="">All Areas</option>
+                    <option ng-repeat="a in areas" value="{{a}}">{{a}}</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Company</label>
+                <select class="filter-select" ng-model="filters.company">
+                    <option value="">All Companies</option>
+                    <option ng-repeat="c in companies" value="{{c}}">{{c}}</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Min Value (£)</label>
+                <input type="number" class="filter-input" ng-model="filters.minValue" placeholder="0">
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Max Value (£)</label>
+                <input type="number" class="filter-input" ng-model="filters.maxValue" placeholder="999999999">
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Start Date From</label>
+                <input type="date" class="filter-input" ng-model="filters.startDateFrom">
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Start Date To</label>
+                <input type="date" class="filter-input" ng-model="filters.startDateTo">
+            </div>
+        </div>
+        <div class="filters-actions">
+            <button class="btn btn-secondary" ng-click="clearFilters()">Clear</button>
+            <button class="btn btn-primary" ng-click="search()">Apply Filters</button>
+        </div>
     </div>
 </div>
 
-<div class="pagination" ng-if="pagination.total_pages > 1">
-    <button type="button" ng-click="prevPage()" ng-disabled="pagination.page <= 1">Previous</button>
-    <span>Page {{pagination.page}} of {{pagination.total_pages}}</span>
-    <button type="button" ng-click="nextPage()" ng-disabled="pagination.page >= pagination.total_pages">Next</button>
+<div class="card" ng-if="!loading && !error && !emptyMessage">
+    <table class="project-table">
+        <thead>
+            <tr>
+                <th>Project Name</th>
+                <th>Company</th>
+                <th>Description</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Value</th>
+                <th>Area</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr ng-repeat="project in projects">
+                <td>{{project.project_name}}</td>
+                <td>{{project.company}}</td>
+                <td class="project-description">{{project.description || '-'}}</td>
+                <td>{{project.project_start ? project.project_start.substr(5,2) + '/' + project.project_start.substr(8,2) + '/' + project.project_start.substr(0,4) : '-'}}</td>
+                <td>{{project.project_end ? project.project_end.substr(5,2) + '/' + project.project_end.substr(8,2) + '/' + project.project_end.substr(0,4) : '-'}}</td>
+                <td class="project-value">£{{project.project_value | number}}</td>
+                <td><span class="project-area">{{project.area}}</span></td>
+            </tr>
+        </tbody>
+    </table>
+    <div class="pagination" ng-if="pagination.total_pages > 1">
+        <span class="pagination-info">Page {{pagination.page}} of {{pagination.total_pages}}</span>
+        <div class="pagination-controls">
+            <button class="btn btn-secondary" ng-click="prevPage()" ng-disabled="pagination.page <= 1">Previous</button>
+            <button class="btn btn-secondary" ng-click="nextPage()" ng-disabled="pagination.page >= pagination.total_pages">Next</button>
+        </div>
+    </div>
+</div>
+
+<div class="loading" ng-if="loading">
+    Loading projects...
+</div>
+
+<div class="error-message" ng-if="error">
+    {{error}}
+</div>
+
+<div class="empty-message" ng-if="emptyMessage">
+    {{emptyMessage}}
 </div>

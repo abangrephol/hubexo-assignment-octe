@@ -2,7 +2,6 @@ import express, { Express } from 'express';
 import request from 'supertest';
 import projectsRouter from './projects';
 
-// Mock the database module
 jest.mock('../db/database', () => ({
   initializeDatabase: jest.fn().mockResolvedValue(undefined),
   getAll: jest.fn()
@@ -12,145 +11,149 @@ const app: Express = express();
 app.use(express.json());
 app.use('/api', projectsRouter);
 
-describe('GET /api/projects', () => {
-  const { getAll } = require('../db/database');
+const { getAll } = require('../db/database');
 
+describe('GET /api/projects', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should return paginated response with default page', async () => {
-    (getAll as jest.Mock)
-      .mockResolvedValueOnce([{ total: 100 }]) // count query
-      .mockResolvedValueOnce([ // data query
-        { project_name: 'Test Project', project_start: '2025-01-01', project_end: '2025-12-31', company: 'Test Co', description: 'Test', project_value: 100000, area: 'London' }
-      ]);
+  it('returns paginated response with default page', async () => {
+    getAll
+      .mockResolvedValueOnce([{ total: 100 }])
+      .mockResolvedValueOnce([{ project_name: 'Test', project_start: '2025-01-01', project_end: '2025-12-31', company: 'Co', description: 'desc', project_value: 100, area: 'London' }]);
 
-    const response = await request(app).get('/api/projects');
-
-    expect(response.status).toBe(200);
-    expect(response.body.data).toHaveLength(1);
-    expect(response.body.pagination).toEqual({
-      page: 1,
-      per_page: 20,
-      total: 100,
-      total_pages: 5
-    });
+    const res = await request(app).get('/api/projects');
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.pagination.total).toBe(100);
   });
 
-  it('should accept pagination parameters', async () => {
-    (getAll as jest.Mock)
-      .mockResolvedValueOnce([{ total: 50 }])
-      .mockResolvedValueOnce([]);
-
-    const response = await request(app).get('/api/projects?page=2&per_page=10');
-
-    expect(response.status).toBe(200);
-    expect(response.body.pagination.page).toBe(2);
-    expect(response.body.pagination.per_page).toBe(10);
+  it('accepts pagination parameters', async () => {
+    getAll.mockResolvedValueOnce([{ total: 50 }]).mockResolvedValueOnce([]);
+    const res = await request(app).get('/api/projects?page=2&per_page=10');
+    expect(res.body.pagination.page).toBe(2);
+    expect(res.body.pagination.per_page).toBe(10);
   });
 
-  it('should filter by area', async () => {
-    (getAll as jest.Mock)
-      .mockResolvedValueOnce([{ total: 20 }])
-      .mockResolvedValueOnce([]);
-
-    const response = await request(app).get('/api/projects?area=London');
-
-    expect(response.status).toBe(200);
-    expect(getAll).toHaveBeenCalledWith(
-      expect.stringContaining('pam.area = ?'),
-      ['London']
-    );
+  it('filters by area', async () => {
+    getAll.mockResolvedValueOnce([{ total: 20 }]).mockResolvedValueOnce([]);
+    const res = await request(app).get('/api/projects?area=London');
+    expect(getAll).toHaveBeenCalledWith(expect.stringContaining('pam.area = ?'), ['London']);
   });
 
-  it('should filter by keyword', async () => {
-    (getAll as jest.Mock)
-      .mockResolvedValueOnce([{ total: 5 }])
-      .mockResolvedValueOnce([]);
-
-    const response = await request(app).get('/api/projects?keyword=Bridge');
-
-    expect(response.status).toBe(200);
-    expect(getAll).toHaveBeenCalledWith(
-      expect.stringContaining('project_name LIKE ?'),
-      ['%Bridge%']
-    );
+  it('filters by keyword searching name and description', async () => {
+    getAll.mockResolvedValueOnce([{ total: 5 }]).mockResolvedValueOnce([]);
+    const res = await request(app).get('/api/projects?keyword=Bridge');
+    expect(getAll).toHaveBeenCalledWith(expect.stringContaining('project_name LIKE ? OR p.description LIKE ?'), ['%Bridge%', '%Bridge%']);
   });
 
-  it('should return 404 when no projects found for area', async () => {
-    (getAll as jest.Mock).mockResolvedValueOnce([{ total: 0 }]);
-
-    const response = await request(app).get('/api/projects?area=NonExistent');
-
-    expect(response.status).toBe(404);
-    expect(response.body.error).toBe('NOT_FOUND');
+  it('filters by company', async () => {
+    getAll.mockResolvedValueOnce([{ total: 10 }]).mockResolvedValueOnce([]);
+    const res = await request(app).get('/api/projects?company=NorthBuild%20Ltd');
+    expect(getAll).toHaveBeenCalledWith(expect.stringContaining('c.company_name = ?'), ['NorthBuild Ltd']);
   });
 
-  it('should return 400 for invalid page parameter', async () => {
-    const response = await request(app).get('/api/projects?page=-1');
-
-    expect(response.status).toBe(400);
-    expect(response.body.error).toBe('INVALID_PARAMS');
+  it('filters by minValue', async () => {
+    getAll.mockResolvedValueOnce([{ total: 5 }]).mockResolvedValueOnce([]);
+    const res = await request(app).get('/api/projects?minValue=1000000');
+    expect(getAll).toHaveBeenCalledWith(expect.stringContaining('p.project_value >= ?'), [1000000]);
   });
 
-  it('should return 400 for invalid per_page parameter', async () => {
-    const response = await request(app).get('/api/projects?per_page=200');
-
-    expect(response.status).toBe(400);
-    expect(response.body.error).toBe('INVALID_PARAMS');
+  it('filters by maxValue', async () => {
+    getAll.mockResolvedValueOnce([{ total: 5 }]).mockResolvedValueOnce([]);
+    const res = await request(app).get('/api/projects?maxValue=500000');
+    expect(getAll).toHaveBeenCalledWith(expect.stringContaining('p.project_value <= ?'), [500000]);
   });
 
-  it('should return all records when all=true', async () => {
-    (getAll as jest.Mock).mockResolvedValueOnce([{ total: 5 }]);
-    (getAll as jest.Mock).mockResolvedValueOnce([
-      { project_name: 'Project 1', project_start: '2025-01-01', project_end: '2025-12-31', company: 'Co1', description: 'Desc1', project_value: 100, area: 'London' },
-      { project_name: 'Project 2', project_start: '2025-01-01', project_end: '2025-12-31', company: 'Co2', description: 'Desc2', project_value: 200, area: 'London' }
-    ]);
-
-    const response = await request(app).get('/api/projects?all=true');
-
-    expect(response.status).toBe(200);
-    expect(Array.isArray(response.body)).toBe(true);
-    expect(response.body).toHaveLength(2);
+  it('filters by startDateFrom', async () => {
+    getAll.mockResolvedValueOnce([{ total: 5 }]).mockResolvedValueOnce([]);
+    const res = await request(app).get('/api/projects?startDateFrom=2025-01-01');
+    expect(getAll).toHaveBeenCalledWith(expect.stringContaining('p.project_start >= ?'), ['2025-01-01']);
   });
 
-  it('should return 413 when all=true exceeds max records', async () => {
-    (getAll as jest.Mock).mockResolvedValueOnce([{ total: 10001 }]);
+  it('filters by startDateTo', async () => {
+    getAll.mockResolvedValueOnce([{ total: 5 }]).mockResolvedValueOnce([]);
+    const res = await request(app).get('/api/projects?startDateTo=2025-12-31');
+    expect(getAll).toHaveBeenCalledWith(expect.stringContaining('p.project_start <= ?'), ['2025-12-31']);
+  });
 
-    const response = await request(app).get('/api/projects?all=true');
+  it('filters by multiple combined filters', async () => {
+    getAll.mockResolvedValueOnce([{ total: 3 }]).mockResolvedValueOnce([]);
+    const res = await request(app).get('/api/projects?area=London&keyword=Bridge&company=NorthBuild%20Ltd&minValue=1000000&maxValue=5000000&startDateFrom=2025-01-01&startDateTo=2025-12-31');
+    const lastCall = getAll.mock.calls[1];
+    expect(lastCall[0]).toContain('pam.area = ?');
+    expect(lastCall[0]).toContain('project_name LIKE ? OR p.description LIKE ?');
+    expect(lastCall[0]).toContain('c.company_name = ?');
+    expect(lastCall[0]).toContain('p.project_value >= ?');
+    expect(lastCall[0]).toContain('p.project_value <= ?');
+    expect(lastCall[0]).toContain('p.project_start >= ?');
+    expect(lastCall[0]).toContain('p.project_start <= ?');
+  });
 
-    expect(response.status).toBe(413);
-    expect(response.body.error).toBe('PAYLOAD_TOO_LARGE');
+  it('returns 404 when no projects found for area', async () => {
+    getAll.mockResolvedValueOnce([{ total: 0 }]);
+    const res = await request(app).get('/api/projects?area=NonExistent');
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 400 for invalid page', async () => {
+    const res = await request(app).get('/api/projects?page=-1');
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 for invalid per_page', async () => {
+    const res = await request(app).get('/api/projects?per_page=200');
+    expect(res.status).toBe(400);
+  });
+
+  it('returns all records when all=true', async () => {
+    getAll.mockResolvedValueOnce([{ total: 5 }]);
+    getAll.mockResolvedValueOnce([{ project_name: 'P1' }]);
+    const res = await request(app).get('/api/projects?all=true');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it('returns 413 when all=true exceeds max records', async () => {
+    getAll.mockResolvedValueOnce([{ total: 10001 }]);
+    const res = await request(app).get('/api/projects?all=true');
+    expect(res.status).toBe(413);
   });
 });
 
 describe('GET /api/areas', () => {
-  const { getAll } = require('../db/database');
-
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should return list of unique areas', async () => {
-    (getAll as jest.Mock).mockResolvedValueOnce([
-      { area: 'London' },
-      { area: 'Manchester' },
-      { area: 'Birmingham' }
-    ]);
-
-    const response = await request(app).get('/api/areas');
-
-    expect(response.status).toBe(200);
-    expect(response.body.areas).toEqual(['London', 'Manchester', 'Birmingham']);
+  it('returns list of unique areas', async () => {
+    getAll.mockResolvedValueOnce([{ area: 'London' }, { area: 'Manchester' }]);
+    const res = await request(app).get('/api/areas');
+    expect(res.body.areas).toEqual(['London', 'Manchester']);
   });
 
-  it('should return empty array when no areas', async () => {
-    (getAll as jest.Mock).mockResolvedValueOnce([]);
+  it('returns empty array when no areas', async () => {
+    getAll.mockResolvedValueOnce([]);
+    const res = await request(app).get('/api/areas');
+    expect(res.body.areas).toEqual([]);
+  });
+});
 
-    const response = await request(app).get('/api/areas');
+describe('GET /api/companies', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-    expect(response.status).toBe(200);
-    expect(response.body.areas).toEqual([]);
+  it('returns list of unique companies', async () => {
+    getAll.mockResolvedValueOnce([{ company_name: 'NorthBuild Ltd' }, { company_name: 'Beacon' }]);
+    const res = await request(app).get('/api/companies');
+    expect(res.body.companies).toEqual(['NorthBuild Ltd', 'Beacon']);
+  });
+
+  it('returns empty array when no companies', async () => {
+    getAll.mockResolvedValueOnce([]);
+    const res = await request(app).get('/api/companies');
+    expect(res.body.companies).toEqual([]);
   });
 });

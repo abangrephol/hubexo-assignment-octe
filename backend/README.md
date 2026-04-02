@@ -19,6 +19,7 @@ Server runs on `http://localhost:3000`
 | `npm run build` | Compile TypeScript to JavaScript |
 | `npm start` | Start production server |
 | `npm run dev` | Start with ts-node (no build) |
+| `npm test` | Run Jest unit tests (26 tests) |
 
 ## API Endpoints
 
@@ -26,10 +27,31 @@ Server runs on `http://localhost:3000`
 
 Query parameters:
 - `area` - Filter by area (e.g., "London")
-- `keyword` - Search by project name (partial match)
+- `keyword` - Search by project name OR description
+- `company` - Filter by company name
+- `minValue` - Minimum project value (£)
+- `maxValue` - Maximum project value (£)
+- `startDateFrom` - Projects starting after this date (YYYY-MM-DD)
+- `startDateTo` - Projects starting before this date (YYYY-MM-DD)
 - `page` - Page number (default: 1)
 - `per_page` - Items per page (default: 20, max: 100)
 - `all=true` - Return all records (max 10,000)
+
+All filters can be combined.
+
+### GET /api/areas
+
+Returns list of unique areas:
+```json
+{"areas": ["London", "Manchester", "Birmingham", ...]}
+```
+
+### GET /api/companies
+
+Returns list of unique companies:
+```json
+{"companies": ["NorthBuild Ltd", "Beacon Infrastructure", ...]}
+```
 
 ### GET /api/health
 
@@ -60,7 +82,7 @@ Health check endpoint.
 | Status | Error Code | Description |
 |--------|------------|-------------|
 | 400 | INVALID_PARAMS | Invalid pagination parameters |
-| 404 | NOT_FOUND | No projects for area |
+| 404 | NOT_FOUND | No projects match filters |
 | 408 | REQUEST_TIMEOUT | Request exceeded 30s timeout |
 | 413 | PAYLOAD_TOO_LARGE | `all=true` exceeds 10,000 records |
 | 429 | TOO_MANY_REQUESTS | Rate limit exceeded (100/min) |
@@ -74,13 +96,31 @@ Health check endpoint.
 - Structured JSON logging
 - Safety cap on full exports (10,000 records)
 
+## Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run specific test file
+npx jest src/routes/projects.test.ts
+```
+
+26 unit tests covering:
+- All filter parameters (area, keyword, company, minValue, maxValue, startDateFrom, startDateTo)
+- Combined filter queries
+- Pagination
+- Error handling (400, 404, 413)
+- /api/areas endpoint
+- /api/companies endpoint
+
 ## Project Structure
 
 ```
 src/
 ├── index.ts           # Express app entry
 ├── routes/
-│   └── projects.ts    # Projects API
+│   └── projects.ts    # Projects API + areas + companies
 ├── db/
 │   └── database.ts   # SQLite operations
 ├── middleware/

@@ -1,0 +1,22 @@
+<div class="page-header">
+    <h1 class="page-title">Dashboard</h1>
+</div>
+
+<div class="loading" ng-if="loading">
+    Loading...
+</div>
+
+<div class="stats-grid" ng-if="!loading">
+    <div class="card stat-card">
+        <div class="stat-value">{{stats.totalProjects | number}}</div>
+        <div class="stat-label">Total Projects</div>
+    </div>
+    <div class="card stat-card">
+        <div class="stat-value">{{stats.areasCount}}</div>
+        <div class="stat-label">Areas</div>
+    </div>
+    <div class="card stat-card">
+        <div class="stat-value">{{stats.companiesCount}}</div>
+        <div class="stat-label">Companies</div>
+    </div>
+</div>

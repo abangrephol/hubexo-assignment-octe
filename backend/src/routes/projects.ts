@@ -35,7 +35,7 @@ router.get('/projects', async (req: Request, res: Response) => {
   try {
     await ensureDatabase();
 
-    const { area, keyword, page, per_page, all } = req.query;
+    const { area, keyword, company, page, per_page, all, minValue, maxValue, startDateFrom, startDateTo } = req.query;
 
     const fetchAll = all === 'true';
 
@@ -75,8 +75,33 @@ router.get('/projects', async (req: Request, res: Response) => {
     }
 
     if (keyword) {
-      whereConditions.push('p.project_name LIKE ?');
-      params.push(`%${keyword}%`);
+      whereConditions.push('(p.project_name LIKE ? OR p.description LIKE ?)');
+      params.push(`%${keyword}%`, `%${keyword}%`);
+    }
+
+    if (company) {
+      whereConditions.push('c.company_name = ?');
+      params.push(String(company));
+    }
+
+    if (minValue) {
+      whereConditions.push('p.project_value >= ?');
+      params.push(Number(minValue));
+    }
+
+    if (maxValue) {
+      whereConditions.push('p.project_value <= ?');
+      params.push(Number(maxValue));
+    }
+
+    if (startDateFrom) {
+      whereConditions.push('p.project_start >= ?');
+      params.push(String(startDateFrom));
+    }
+
+    if (startDateTo) {
+      whereConditions.push('p.project_start <= ?');
+      params.push(String(startDateTo));
     }
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';

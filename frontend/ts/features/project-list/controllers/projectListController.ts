@@ -1,28 +1,23 @@
 declare var angular: any;
 
-interface ProjectListScope extends ng.IScope {
-  projects: any[];
-  pagination: any;
-  area: string;
-  keyword: string;
-  loading: boolean;
-  error: string;
-  emptyMessage: string;
-  areas: string[];
-  search: () => void;
-  nextPage: () => void;
-  prevPage: () => void;
-}
-
-appModule.controller('ProjectListController', ['$scope', 'ProjectService', function($scope: ProjectListScope, ProjectService: any) {
+angular.module('gleniganApp').controller('ProjectListController', ['$scope', 'ProjectService', function($scope: any, ProjectService: any) {
   $scope.projects = [];
-  $scope.area = '';
-  $scope.keyword = '';
+  $scope.filters = {
+    keyword: '',
+    area: '',
+    company: '',
+    minValue: '',
+    maxValue: '',
+    startDateFrom: '',
+    startDateTo: ''
+  };
   $scope.loading = false;
   $scope.error = '';
   $scope.emptyMessage = '';
   $scope.pagination = null;
   $scope.areas = [];
+  $scope.companies = [];
+  $scope.showFilters = false;
 
   ProjectService.getAreas().then(function(response: any) {
     if (response.data && response.data.areas) {
@@ -32,34 +27,46 @@ appModule.controller('ProjectListController', ['$scope', 'ProjectService', funct
     $scope.areas = [];
   });
 
+  ProjectService.getCompanies().then(function(response: any) {
+    if (response.data && response.data.companies) {
+      $scope.companies = response.data.companies;
+    }
+  }).catch(function(_error: any) {
+    $scope.companies = [];
+  });
+
+  function buildParams(pageNum: number): any {
+    const params: any = {};
+    if ($scope.filters.keyword) params.keyword = $scope.filters.keyword;
+    if ($scope.filters.area) params.area = $scope.filters.area;
+    if ($scope.filters.company) params.company = $scope.filters.company;
+    if ($scope.filters.minValue) params.minValue = $scope.filters.minValue;
+    if ($scope.filters.maxValue) params.maxValue = $scope.filters.maxValue;
+    if ($scope.filters.startDateFrom) params.startDateFrom = $scope.filters.startDateFrom;
+    if ($scope.filters.startDateTo) params.startDateTo = $scope.filters.startDateTo;
+    params.page = pageNum;
+    return params;
+  }
+
   $scope.search = function() {
     $scope.loading = true;
     $scope.error = '';
+    $scope.emptyMessage = '';
 
-    const params: any = {};
-    if ($scope.area && $scope.area !== '') {
-      params.area = $scope.area;
-    }
-    if ($scope.keyword && $scope.keyword !== '') {
-      params.keyword = $scope.keyword;
-    }
-    params.page = 1;
-
-    ProjectService.getProjects(params).then(function(response: any) {
-      $scope.error = '';
-      $scope.emptyMessage = '';
+    ProjectService.getProjects(buildParams(1)).then(function(response: any) {
+      const data = response.data;
       
-      if (response.data && response.data.data && Array.isArray(response.data.data)) {
-        if (response.data.data.length === 0) {
+      if (data && Array.isArray(data.data)) {
+        if (data.data.length === 0) {
           $scope.emptyMessage = 'No projects found matching your search criteria.';
         }
-        $scope.projects = response.data.data;
-        $scope.pagination = response.data.pagination;
-      } else if (response.data && Array.isArray(response.data)) {
-        if (response.data.length === 0) {
+        $scope.projects = data.data;
+        $scope.pagination = data.pagination;
+      } else if (data && Array.isArray(data)) {
+        if (data.length === 0) {
           $scope.emptyMessage = 'No projects found matching your search criteria.';
         }
-        $scope.projects = response.data;
+        $scope.projects = data;
         $scope.pagination = null;
       } else {
         $scope.projects = [];
@@ -82,23 +89,31 @@ appModule.controller('ProjectListController', ['$scope', 'ProjectService', funct
     });
   };
 
+  $scope.clearFilters = function() {
+    $scope.filters = {
+      keyword: '',
+      area: '',
+      company: '',
+      minValue: '',
+      maxValue: '',
+      startDateFrom: '',
+      startDateTo: ''
+    };
+    $scope.search();
+  };
+
   $scope.nextPage = function() {
     if ($scope.pagination && $scope.pagination.page < $scope.pagination.total_pages) {
       $scope.loading = true;
-      const params: any = {};
-      if ($scope.area && $scope.area !== '') params.area = $scope.area;
-      if ($scope.keyword && $scope.keyword !== '') params.keyword = $scope.keyword;
-      params.page = $scope.pagination.page + 1;
-
-      ProjectService.getProjects(params).then(function(response: any) {
+      ProjectService.getProjects(buildParams($scope.pagination.page + 1)).then(function(response: any) {
         $scope.emptyMessage = '';
-        
-        if (response.data && response.data.data) {
-          if (response.data.data.length === 0) {
+        const data = response.data;
+        if (data && data.data) {
+          if (data.data.length === 0) {
             $scope.emptyMessage = 'No projects found matching your search criteria.';
           }
-          $scope.projects = response.data.data;
-          $scope.pagination = response.data.pagination;
+          $scope.projects = data.data;
+          $scope.pagination = data.pagination;
         }
       }).catch(function(error: any) {
         if (error.status === 0) {
@@ -115,20 +130,15 @@ appModule.controller('ProjectListController', ['$scope', 'ProjectService', funct
   $scope.prevPage = function() {
     if ($scope.pagination && $scope.pagination.page > 1) {
       $scope.loading = true;
-      const params: any = {};
-      if ($scope.area && $scope.area !== '') params.area = $scope.area;
-      if ($scope.keyword && $scope.keyword !== '') params.keyword = $scope.keyword;
-      params.page = $scope.pagination.page - 1;
-
-      ProjectService.getProjects(params).then(function(response: any) {
+      ProjectService.getProjects(buildParams($scope.pagination.page - 1)).then(function(response: any) {
         $scope.emptyMessage = '';
-        
-        if (response.data && response.data.data) {
-          if (response.data.data.length === 0) {
+        const data = response.data;
+        if (data && data.data) {
+          if (data.data.length === 0) {
             $scope.emptyMessage = 'No projects found matching your search criteria.';
           }
-          $scope.projects = response.data.data;
-          $scope.pagination = response.data.pagination;
+          $scope.projects = data.data;
+          $scope.pagination = data.pagination;
         }
       }).catch(function(error: any) {
         if (error.status === 0) {
