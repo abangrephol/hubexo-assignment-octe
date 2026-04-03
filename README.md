@@ -118,25 +118,29 @@ Returns list of unique companies: `{"companies": ["NorthBuild Ltd", "Beacon Infr
 
 ## How to Run Locally
 
-### Prerequisites
-
-- Node.js 18+
-- npm
-
-### Backend Setup
+### Quick Start (Automated)
 
 ```bash
+./setup.sh    # Install dependencies and build
+./run.sh      # Start server
+```
+
+Then open `http://localhost:3000`
+
+### Manual Setup
+
+**Prerequisites:** Node.js 18+
+
+```bash
+# Backend
 cd backend
 npm install
 npm run build
 npm start
+
+# Frontend (built with backend)
+# Already included in npm start
 ```
-
-Server runs on `http://localhost:3000`
-
-### Frontend Setup
-
-The frontend is served statically from the backend. Open `http://localhost:3000` in a browser.
 
 ### Run Tests
 
@@ -145,7 +149,7 @@ cd backend
 npm test
 ```
 
-26 tests covering all API endpoints and filter combinations.
+26 unit tests covering all API endpoints and filter combinations.
 
 ---
 
